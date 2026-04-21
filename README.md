@@ -132,3 +132,11 @@ The one exception is company logos: when a card has a `website` set, the browser
 ## License
 
 MIT
+
+## Author
+
+Built by Harrison Wheeler.
+
+- Website: [harrisonwheeler.com](http://www.harrisonwheeler.com)
+- LinkedIn: [in/hmwheeler](http://linkedin.com/in/hmwheeler)
+- Bluesky: [@hmwheele.bsky.social](https://bsky.app/profile/hmwheele.bsky.social)
