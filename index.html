@@ -1,0 +1,1669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Job Tracker</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --bg-elev: #171a21;
+    --bg-elev-2: #1e222b;
+    --border: #262b36;
+    --border-strong: #34394a;
+    --text: #e6e8ee;
+    --text-dim: #9ba1b0;
+    --text-faint: #6b7180;
+    --accent: #7aa2ff;
+    --accent-dim: #3a4a7a;
+    --danger: #ff7a7a;
+    --success: #6fcf97;
+    --warning: #f2c94c;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.25);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --col-width: 300px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f7f9;
+      --bg-elev: #ffffff;
+      --bg-elev-2: #f0f2f6;
+      --border: #e3e6eb;
+      --border-strong: #cdd2db;
+      --text: #1a1d24;
+      --text-dim: #5a6170;
+      --text-faint: #8d94a3;
+      --accent: #3458d6;
+      --accent-dim: #b8c7ef;
+      --shadow: 0 1px 2px rgba(15,20,30,.06), 0 6px 20px rgba(15,20,30,.08);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: transparent;
+    height: 56px;
+  }
+  header h1 {
+    font-size: 15px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  header .spacer { flex: 1; }
+  .file-status {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .file-status .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-faint);
+  }
+  .file-status.synced .dot { background: var(--success); }
+  .file-status.unsynced .dot { background: var(--warning); }
+
+  button, .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elev-2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  button:hover, .btn:hover { background: var(--border); }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-dim);
+    padding: 4px 8px;
+  }
+  button.ghost:hover { background: var(--bg-elev-2); color: var(--text); }
+  button.danger {
+    color: var(--danger);
+    border-color: transparent;
+    background: transparent;
+  }
+  button.danger:hover { background: rgba(255,122,122,.1); }
+
+  .board-wrap {
+    height: calc(100vh - 56px - 72px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 16px 20px 24px;
+  }
+  .board {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    height: 100%;
+    min-width: min-content;
+  }
+
+  .column {
+    flex: 0 0 var(--col-width);
+    width: var(--col-width);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .column.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  .column-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    cursor: grab;
+  }
+  .column-header:active { cursor: grabbing; }
+  .column-title {
+    font-weight: 600;
+    font-size: 13px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+  }
+  .column-title:focus {
+    outline: none;
+    border-color: var(--border-strong);
+    background: var(--bg-elev-2);
+  }
+  .count {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--bg-elev-2);
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+  .col-menu-btn {
+    width: 24px; height: 24px;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    border-radius: 4px;
+  }
+  .col-menu-btn:hover { background: var(--bg-elev-2); color: var(--text); }
+
+  .cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 40px;
+  }
+  .cards::-webkit-scrollbar { width: 8px; }
+  .cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .cards::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  .card {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    cursor: grab;
+    transition: border-color .12s, transform .12s, box-shadow .12s;
+    position: relative;
+  }
+  .card:hover { border-color: var(--border-strong); }
+  .card.dragging { opacity: 0.4; cursor: grabbing; }
+  .card-head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .card-logo {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+  }
+  .card-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: #fff;
+  }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-bottom: 2px;
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+  .card-company {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    word-wrap: break-word;
+  }
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    margin-top: 6px;
+  }
+  .chip {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg-elev);
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .chip.accent {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+  .card-footer {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .add-card-btn {
+    padding: 8px 10px;
+    margin: 0 8px 8px;
+    width: calc(100% - 16px);
+    text-align: left;
+    color: var(--text-dim);
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    font-size: 12.5px;
+  }
+  .add-card-btn:hover { color: var(--text); border-color: var(--accent-dim); background: var(--bg-elev-2); }
+
+  .add-column {
+    flex: 0 0 var(--col-width);
+    width: var(--col-width);
+    height: 48px;
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
+    border-radius: var(--radius);
+  }
+  .add-column:hover { color: var(--text); border-color: var(--accent-dim); background: var(--bg-elev); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 560px;
+    width: 100%;
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+  }
+  .modal header {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    height: auto;
+  }
+  .modal header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .modal form {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .modal footer {
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .modal footer .spacer { flex: 1; }
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input[type=text], input[type=url], input[type=date], select, textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 72px; font-family: inherit; }
+
+  /* Column context menu */
+  .col-menu {
+    position: absolute;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+    z-index: 50;
+    min-width: 160px;
+    padding: 4px;
+    display: none;
+  }
+  .col-menu.open { display: block; }
+  .col-menu button {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    border: none;
+    background: transparent;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .col-menu button:hover { background: var(--bg-elev-2); }
+  .col-menu button.danger { color: var(--danger); }
+  .col-menu .separator { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12.5px;
+  }
+
+  .link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .link:hover { text-decoration: underline; }
+
+  .kbd {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    background: var(--bg-elev-2);
+    color: var(--text-dim);
+  }
+
+  /* Drop indicator */
+  .drop-indicator {
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin: 2px 0;
+  }
+
+  input[type="datetime-local"] {
+    width: 100%;
+    font: inherit;
+    font-size: 13.5px;
+    padding: 7px 10px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+  }
+  input[type="datetime-local"]:focus { outline: none; border-color: var(--accent); }
+
+  .ics-btn-full {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 13px;
+    text-align: center;
+    background: var(--bg-elev-2);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    margin-top: 4px;
+  }
+  .ics-btn-full:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+  .ics-btn-full:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .schedule-history {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev-2);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .schedule-history-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .schedule-history-row .stage-name { color: var(--text); }
+  .schedule-history-row .stage-when {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Card scheduled-date pill */
+  .chip.scheduled {
+    color: var(--accent);
+    border-color: var(--accent-dim);
+    background: var(--bg-elev);
+    font-weight: 600;
+  }
+
+  /* Stats bar at the bottom */
+  .stats-bar {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    z-index: 30;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 12px 20px 14px;
+    display: flex;
+    gap: 24px;
+    align-items: stretch;
+    height: 72px;
+    overflow: hidden;
+  }
+  .stats-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 5px;
+  }
+  .stats-summary {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+  .stats-summary .num {
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 15px;
+    margin-right: 5px;
+  }
+  .stats-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .stats-search { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Tracker</h1>
+  <div class="spacer"></div>
+  <span class="file-status" id="file-status"><span class="dot"></span><span id="file-status-label">Browser only</span></span>
+  <button id="btn-sync" title="Connect a local jobs.json file so changes auto-save to disk (Chrome/Edge only)">Sync to file…</button>
+  <button id="btn-import" title="Load a jobs.json (replaces board) or a companies.md table (merges into board)">Import</button>
+  <button id="btn-export" title="Download current data as jobs.json">Export</button>
+</header>
+
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stats-group" style="flex:1">
+    <div class="stats-label">Pipeline</div>
+    <div class="stats-summary" id="stats-summary"></div>
+  </div>
+  <div class="stats-group" id="stats-search-wrap" style="min-width:180px;text-align:right;align-items:flex-end">
+    <div class="stats-label">Search duration</div>
+    <div class="stats-search" id="stats-search"></div>
+  </div>
+</div>
+
+<!-- Job modal -->
+<div class="modal-backdrop" id="job-modal">
+  <div class="modal">
+    <header>
+      <h2 id="job-modal-title">Add job</h2>
+    </header>
+    <form id="job-form">
+      <label>Stage
+        <select id="f-stage"></select>
+      </label>
+      <div class="row">
+        <label>Company
+          <input type="text" id="f-company" required autocomplete="off" placeholder="Acme Inc." />
+        </label>
+        <label>Role / title
+          <input type="text" id="f-role" required autocomplete="off" placeholder="Senior Product Designer" />
+        </label>
+      </div>
+      <div class="row">
+        <label>Pay range
+          <input type="text" id="f-pay" autocomplete="off" placeholder="$150k – $180k" />
+        </label>
+        <label>Work mode
+          <select id="f-mode">
+            <option value="">—</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Onsite">Onsite</option>
+          </select>
+        </label>
+      </div>
+      <label>Location
+        <input type="text" id="f-location" autocomplete="off" placeholder="San Francisco, CA" />
+      </label>
+      <label>Company website <span style="color:var(--text-faint);font-weight:400">(used to fetch the logo)</span>
+        <input type="text" id="f-website" autocomplete="off" placeholder="acme.com" />
+      </label>
+      <label>Job post URL
+        <input type="url" id="f-url" autocomplete="off" placeholder="https://…" />
+      </label>
+      <div class="row">
+        <label>Scheduled
+          <input type="datetime-local" id="f-scheduled" />
+        </label>
+        <label>Date applied
+          <input type="date" id="f-date" />
+        </label>
+      </div>
+      <div id="schedule-history-block" style="display:none">
+        <div class="stats-label" style="margin-bottom:6px">Past scheduled calls</div>
+        <div class="schedule-history" id="schedule-history"></div>
+      </div>
+      <button type="button" id="btn-download-ics" class="ics-btn-full" title="Download a calendar invite (.ics) for the scheduled time" disabled>Download calendar invite (.ics)</button>
+      <label>Notes
+        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes…"></textarea>
+      </label>
+    </form>
+    <footer>
+      <button class="danger" id="btn-delete-job" style="display:none">Delete</button>
+      <div class="spacer"></div>
+      <button id="btn-cancel-job">Cancel</button>
+      <button class="primary" id="btn-save-job">Save</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Column context menu -->
+<div class="col-menu" id="col-menu">
+  <button data-action="rename">Rename</button>
+  <button data-action="add-left">Add column to left</button>
+  <button data-action="add-right">Add column to right</button>
+  <div class="separator"></div>
+  <button class="danger" data-action="delete">Delete column</button>
+</div>
+
+<script>
+/* ---------- Default state ---------- */
+const DEFAULT_STATE = {
+  version: 1,
+  columns: [
+    { id: cid(), title: "Wishlist",        cardIds: [] },
+    { id: cid(), title: "Applied",         cardIds: [] },
+    { id: cid(), title: "Recruiter Screen",cardIds: [] },
+    { id: cid(), title: "Hiring Manager",  cardIds: [] },
+    { id: cid(), title: "Technical/Panel", cardIds: [] },
+    { id: cid(), title: "Final Round",     cardIds: [] },
+    { id: cid(), title: "Offer",           cardIds: [] },
+    { id: cid(), title: "Rejected/Closed", cardIds: [] },
+  ],
+  cards: {},
+};
+function cid() { return "c_" + Math.random().toString(36).slice(2, 10); }
+function kid() { return "k_" + Math.random().toString(36).slice(2, 10); }
+
+/* ---------- Logo helpers ---------- */
+// Domains we should NOT treat as a company domain — they're recruiting platforms
+// and job boards, not the employer's site.
+const JOB_BOARD_DOMAINS = new Set([
+  "greenhouse.io","lever.co","workday.com","myworkdayjobs.com","workable.com",
+  "ashbyhq.com","smartrecruiters.com","bamboohr.com","jobvite.com","icims.com",
+  "taleo.net","breezy.hr","recruiterbox.com","linkedin.com","indeed.com",
+  "glassdoor.com","hired.com","ziprecruiter.com","monster.com","wellfound.com",
+  "angel.co","builtin.com","dice.com","simplyhired.com","careerbuilder.com",
+  "remote.co","weworkremotely.com","remoteok.com","otta.com","hirist.com",
+  "google.com","notion.so","airtable.com","docs.google.com","careers.google.com",
+]);
+function cleanDomain(input) {
+  if (!input) return "";
+  let s = String(input).trim().toLowerCase();
+  // Strip protocol
+  s = s.replace(/^https?:\/\//, "");
+  // Strip path, query, fragment
+  s = s.split(/[\/?#]/)[0];
+  // Strip userinfo
+  s = s.split("@").pop();
+  // Strip port
+  s = s.split(":")[0];
+  // Strip leading 'www.'
+  s = s.replace(/^www\./, "");
+  // Must look like a domain
+  if (!/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(s)) return "";
+  return s;
+}
+function registrableDomain(host) {
+  // Crude but serviceable: keep last two labels (company.com), or last three for
+  // known two-part TLDs like co.uk / com.au.
+  const parts = host.split(".");
+  if (parts.length <= 2) return host;
+  const twoPart = new Set(["co.uk","ac.uk","co.jp","com.au","co.nz","com.br","co.in","com.mx","co.kr"]);
+  const last2 = parts.slice(-2).join(".");
+  const last3 = parts.slice(-3).join(".");
+  if (twoPart.has(last2)) return last3;
+  return last2;
+}
+function getLogoDomain(card) {
+  // Prefer explicit website
+  const fromWebsite = cleanDomain(card.website);
+  if (fromWebsite) return registrableDomain(fromWebsite);
+  // Fall back to job URL, but only if it's not a known job board
+  if (card.url) {
+    try {
+      const u = new URL(card.url);
+      const host = cleanDomain(u.hostname);
+      const reg = registrableDomain(host);
+      if (host && !JOB_BOARD_DOMAINS.has(reg)) return reg;
+    } catch (e) { /* invalid URL, skip */ }
+  }
+  return "";
+}
+function companyColor(name) {
+  // Deterministic pastel-ish color from company name
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `hsl(${hue} 55% 45%)`;
+}
+function companyInitials(name) {
+  if (!name) return "?";
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+function renderLogo(card) {
+  const wrap = document.createElement("div");
+  wrap.className = "card-logo";
+  const domain = getLogoDomain(card);
+  const initials = companyInitials(card.company);
+  wrap.style.background = companyColor(card.company || "");
+  wrap.textContent = initials;
+  if (domain) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+    img.addEventListener("load", () => {
+      // Only swap in the image once it loads; keep initials as fallback if it errors
+      wrap.textContent = "";
+      wrap.appendChild(img);
+    });
+    img.addEventListener("error", () => {
+      // Keep initials fallback (already rendered)
+    });
+  }
+  return wrap;
+}
+
+
+/* ---------- Storage ---------- */
+const LS_KEY = "jobTracker.v1";
+const LS_HANDLE_FLAG = "jobTracker.hasFileHandle";
+let state = loadState();
+let fileHandle = null;
+let saveTimer = null;
+let syncDirty = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    return normalizeState(parsed);
+  } catch (e) {
+    console.error("loadState failed", e);
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+function normalizeState(s) {
+  if (!s || typeof s !== "object") return structuredClone(DEFAULT_STATE);
+  if (!Array.isArray(s.columns) || s.columns.length === 0) s.columns = structuredClone(DEFAULT_STATE.columns);
+  if (!s.cards || typeof s.cards !== "object") s.cards = {};
+  s.columns.forEach(col => {
+    if (!col.id) col.id = cid();
+    if (!Array.isArray(col.cardIds)) col.cardIds = [];
+    if (typeof col.title !== "string") col.title = "Untitled";
+  });
+
+  // Migrate cards: every card gets stageHistory + scheduleHistory.
+  const colIdForCard = {};
+  s.columns.forEach(col => col.cardIds.forEach(cid => { colIdForCard[cid] = col.id; }));
+  Object.values(s.cards).forEach(card => {
+    if (!Array.isArray(card.stageHistory)) card.stageHistory = [];
+    if (!Array.isArray(card.scheduleHistory)) card.scheduleHistory = [];
+    const currentColId = colIdForCard[card.id];
+    // If we never recorded an entry into the current column, seed one so duration
+    // calculations still work for pre-existing cards.
+    if (currentColId && !card.stageHistory.some(h => h.colId === currentColId && !h.leftAt)) {
+      const seedTs = card.createdAt || (card.dateApplied ? dateToTs(card.dateApplied) : Date.now());
+      card.stageHistory.push({ colId: currentColId, enteredAt: seedTs });
+    }
+    // Migrate the old date-only `scheduledDate` into the datetime-local `scheduledAt`.
+    // Default to 9:00am local time when we only have a date.
+    if (!card.scheduledAt && card.scheduledDate) {
+      card.scheduledAt = card.scheduledDate + "T09:00";
+    }
+    delete card.scheduledDate;
+  });
+  return s;
+}
+function dateToTs(s) {
+  try { const d = new Date(s + "T00:00:00"); return d.getTime() || Date.now(); }
+  catch (e) { return Date.now(); }
+}
+function tsToDate(ts) {
+  try { return new Date(ts).toISOString().slice(0, 10); } catch (e) { return ""; }
+}
+function persist() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  syncDirty = true;
+  updateSyncStatus();
+  if (fileHandle) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(writeToFile, 400);
+  }
+}
+async function writeToFile() {
+  if (!fileHandle) return;
+  try {
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(state, null, 2));
+    await writable.close();
+    syncDirty = false;
+    updateSyncStatus();
+  } catch (e) {
+    console.error("writeToFile failed", e);
+    fileHandle = null;
+    localStorage.removeItem(LS_HANDLE_FLAG);
+    updateSyncStatus();
+  }
+}
+async function pickSyncFile() {
+  if (!window.showSaveFilePicker) {
+    alert("File sync is only available in Chrome, Edge, or Arc. You can still use Import/Export.");
+    return;
+  }
+  try {
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: "jobs.json",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+    });
+    localStorage.setItem(LS_HANDLE_FLAG, "1");
+    await writeToFile();
+  } catch (e) {
+    if (e.name !== "AbortError") console.error(e);
+  }
+}
+function updateSyncStatus() {
+  const el = document.getElementById("file-status");
+  const label = document.getElementById("file-status-label");
+  el.classList.remove("synced", "unsynced");
+  if (fileHandle) {
+    if (syncDirty) { el.classList.add("unsynced"); label.textContent = "Saving…"; }
+    else { el.classList.add("synced"); label.textContent = "Synced to " + (fileHandle.name || "file"); }
+  } else {
+    label.textContent = "Browser only";
+  }
+}
+
+/* ---------- Rendering ---------- */
+const board = document.getElementById("board");
+
+function render() {
+  board.innerHTML = "";
+  state.columns.forEach(col => board.appendChild(renderColumn(col)));
+  const addCol = document.createElement("button");
+  addCol.className = "add-column";
+  addCol.textContent = "+ Add column";
+  addCol.addEventListener("click", () => addColumn());
+  board.appendChild(addCol);
+  renderStats();
+}
+
+function renderColumn(col) {
+  const colEl = document.createElement("section");
+  colEl.className = "column";
+  colEl.dataset.colId = col.id;
+
+  const header = document.createElement("header");
+  header.className = "column-header";
+  header.draggable = true;
+
+  const title = document.createElement("div");
+  title.className = "column-title";
+  title.textContent = col.title;
+  title.title = "Double-click to rename";
+  title.addEventListener("dblclick", (e) => {
+    e.stopPropagation();
+    const v = prompt("Rename column:", col.title);
+    if (v && v.trim()) { col.title = v.trim(); persist(); render(); }
+  });
+
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = col.cardIds.length;
+
+  const menuBtn = document.createElement("button");
+  menuBtn.className = "col-menu-btn";
+  menuBtn.setAttribute("aria-label", "Column menu");
+  menuBtn.innerHTML = "&#x22EF;";
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openColMenu(col.id, menuBtn);
+  });
+
+  header.append(title, count, menuBtn);
+
+  const cards = document.createElement("div");
+  cards.className = "cards";
+  cards.dataset.colId = col.id;
+
+  if (col.cardIds.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No jobs yet";
+    cards.appendChild(empty);
+  } else {
+    col.cardIds.forEach(cardId => {
+      const card = state.cards[cardId];
+      if (card) cards.appendChild(renderCard(card));
+    });
+  }
+
+  const addBtn = document.createElement("button");
+  addBtn.className = "add-card-btn";
+  addBtn.textContent = "+ Add job";
+  addBtn.addEventListener("click", () => openJobModal(null, col.id));
+
+  colEl.append(header, cards, addBtn);
+
+  /* ---- column drag (reorder) ---- */
+  header.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("application/x-column", col.id);
+    e.dataTransfer.effectAllowed = "move";
+    colEl.classList.add("dragging");
+  });
+  header.addEventListener("dragend", () => colEl.classList.remove("dragging"));
+
+  /* ---- column drop target (for cards + columns) ---- */
+  colEl.addEventListener("dragover", (e) => {
+    const types = e.dataTransfer.types;
+    if (types.includes("application/x-card") || types.includes("application/x-column")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      colEl.classList.add("drag-over");
+    }
+  });
+  colEl.addEventListener("dragleave", (e) => {
+    if (!colEl.contains(e.relatedTarget)) colEl.classList.remove("drag-over");
+  });
+  colEl.addEventListener("drop", (e) => {
+    colEl.classList.remove("drag-over");
+    const cardId = e.dataTransfer.getData("application/x-card");
+    const draggedColId = e.dataTransfer.getData("application/x-column");
+    if (cardId) {
+      e.preventDefault();
+      const targetIndex = getCardDropIndex(cards, e.clientY);
+      moveCard(cardId, col.id, targetIndex);
+    } else if (draggedColId && draggedColId !== col.id) {
+      e.preventDefault();
+      moveColumn(draggedColId, col.id);
+    }
+  });
+
+  return colEl;
+}
+
+function renderCard(card) {
+  const el = document.createElement("div");
+  el.className = "card";
+  el.dataset.cardId = card.id;
+  el.draggable = true;
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+  head.appendChild(renderLogo(card));
+
+  const body = document.createElement("div");
+  body.className = "card-body";
+
+  const title = document.createElement("div");
+  title.className = "card-title";
+  title.textContent = card.role || "Untitled role";
+
+  const company = document.createElement("div");
+  company.className = "card-company";
+  company.textContent = card.company || "—";
+
+  body.append(title, company);
+  head.appendChild(body);
+  el.appendChild(head);
+
+  const meta = document.createElement("div");
+  meta.className = "card-meta";
+
+  // Scheduled date+time for the next call / interview
+  if (card.scheduledAt) {
+    const chip = document.createElement("span");
+    chip.className = "chip scheduled";
+    chip.textContent = "Scheduled · " + formatDateTime(card.scheduledAt);
+    chip.title = "Next scheduled call or interview";
+    meta.appendChild(chip);
+  }
+  if (card.mode) {
+    const chip = document.createElement("span");
+    chip.className = "chip accent";
+    chip.textContent = card.mode;
+    meta.appendChild(chip);
+  }
+  if (card.location) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = card.location;
+    meta.appendChild(chip);
+  }
+  if (card.pay) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = card.pay;
+    meta.appendChild(chip);
+  }
+  if (meta.children.length) el.appendChild(meta);
+
+  if (card.dateApplied || card.url) {
+    const footer = document.createElement("div");
+    footer.className = "card-footer";
+    const date = document.createElement("span");
+    date.textContent = card.dateApplied ? "Applied " + formatDate(card.dateApplied) : "";
+    footer.appendChild(date);
+    if (card.url) {
+      const link = document.createElement("a");
+      link.href = card.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "link";
+      link.textContent = "Post ↗";
+      link.addEventListener("click", (e) => e.stopPropagation());
+      footer.appendChild(link);
+    }
+    el.appendChild(footer);
+  }
+
+  el.addEventListener("click", () => openJobModal(card.id));
+
+  el.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("application/x-card", card.id);
+    e.dataTransfer.effectAllowed = "move";
+    el.classList.add("dragging");
+  });
+  el.addEventListener("dragend", () => el.classList.remove("dragging"));
+
+  return el;
+}
+
+function formatDate(iso) {
+  try {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch (e) { return iso; }
+}
+
+function getCardDropIndex(cardsEl, clientY) {
+  const children = [...cardsEl.querySelectorAll(".card")];
+  for (let i = 0; i < children.length; i++) {
+    const rect = children[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) return i;
+  }
+  return children.length;
+}
+
+/* ---------- State mutations ---------- */
+function addColumn(index) {
+  const title = prompt("Column name:");
+  if (!title) return;
+  const col = { id: cid(), title: title.trim(), cardIds: [] };
+  if (typeof index === "number") state.columns.splice(index, 0, col);
+  else state.columns.push(col);
+  persist();
+  render();
+}
+function deleteColumn(colId) {
+  const col = state.columns.find(c => c.id === colId);
+  if (!col) return;
+  if (col.cardIds.length > 0) {
+    if (!confirm(`Delete "${col.title}" and ${col.cardIds.length} job(s) in it? This cannot be undone.`)) return;
+    col.cardIds.forEach(id => delete state.cards[id]);
+  }
+  state.columns = state.columns.filter(c => c.id !== colId);
+  if (state.columns.length === 0) state.columns.push({ id: cid(), title: "Todo", cardIds: [] });
+  persist();
+  render();
+}
+function moveColumn(fromId, overId) {
+  const fromIdx = state.columns.findIndex(c => c.id === fromId);
+  const overIdx = state.columns.findIndex(c => c.id === overId);
+  if (fromIdx < 0 || overIdx < 0) return;
+  const [moved] = state.columns.splice(fromIdx, 1);
+  state.columns.splice(overIdx, 0, moved);
+  persist();
+  render();
+}
+function moveCard(cardId, toColId, toIndex) {
+  // Figure out source column before we mutate anything
+  const sourceCol = state.columns.find(c => c.cardIds.includes(cardId));
+
+  // remove from source
+  for (const col of state.columns) {
+    const idx = col.cardIds.indexOf(cardId);
+    if (idx >= 0) col.cardIds.splice(idx, 1);
+  }
+  const target = state.columns.find(c => c.id === toColId);
+  if (!target) return;
+  const clamped = Math.max(0, Math.min(toIndex, target.cardIds.length));
+  target.cardIds.splice(clamped, 0, cardId);
+
+  // Only log a transition if the column actually changed
+  if (sourceCol && sourceCol.id !== toColId) {
+    // Snapshot the scheduled time into history under the source stage, then reset it.
+    const card = state.cards[cardId];
+    if (card && card.scheduledAt) {
+      appendScheduleHistory(card, sourceCol.id, card.scheduledAt, sourceCol.title);
+      card.scheduledAt = "";
+    }
+    recordStageTransition(cardId, toColId);
+  }
+
+  persist();
+  render();
+}
+function recordStageTransition(cardId, toColId) {
+  const card = state.cards[cardId];
+  if (!card) return;
+  if (!Array.isArray(card.stageHistory)) card.stageHistory = [];
+  const now = Date.now();
+  // Close out the last open stage entry
+  const open = [...card.stageHistory].reverse().find(h => !h.leftAt);
+  if (open && open.colId !== toColId) open.leftAt = now;
+  // Add the new entry if we don't already have an open one for this column
+  const existingOpen = card.stageHistory.find(h => h.colId === toColId && !h.leftAt);
+  if (!existingOpen) card.stageHistory.push({ colId: toColId, enteredAt: now });
+  card.updatedAt = now;
+}
+
+/* ---------- Job modal ---------- */
+let editingCardId = null;
+let editingTargetColId = null;
+const jobModal = document.getElementById("job-modal");
+const jobForm = document.getElementById("job-form");
+const jobTitle = document.getElementById("job-modal-title");
+const btnDeleteJob = document.getElementById("btn-delete-job");
+
+function openJobModal(cardId, targetColId) {
+  editingCardId = cardId;
+  editingTargetColId = targetColId || null;
+  const card = cardId ? state.cards[cardId] : null;
+  jobTitle.textContent = card ? "Edit job" : "Add job";
+  btnDeleteJob.style.display = card ? "" : "none";
+
+  // Populate the stage dropdown from current columns and select the right one
+  const stageSelect = document.getElementById("f-stage");
+  stageSelect.innerHTML = "";
+  state.columns.forEach(col => {
+    const opt = document.createElement("option");
+    opt.value = col.id;
+    opt.textContent = col.title;
+    stageSelect.appendChild(opt);
+  });
+  const currentColId = card ? findColumnForCard(card.id)?.id : (targetColId || state.columns[0]?.id);
+  if (currentColId) stageSelect.value = currentColId;
+
+  document.getElementById("f-company").value = card?.company || "";
+  document.getElementById("f-role").value = card?.role || "";
+  document.getElementById("f-pay").value = card?.pay || "";
+  document.getElementById("f-mode").value = card?.mode || "";
+  document.getElementById("f-location").value = card?.location || "";
+  document.getElementById("f-website").value = card?.website || "";
+  document.getElementById("f-url").value = card?.url || "";
+  document.getElementById("f-date").value = card?.dateApplied || "";
+  document.getElementById("f-scheduled").value = card?.scheduledAt || "";
+  document.getElementById("f-notes").value = card?.notes || "";
+
+  updateIcsButtonState();
+  renderScheduleHistory(card);
+
+  jobModal.classList.add("open");
+  setTimeout(() => document.getElementById("f-company").focus(), 40);
+}
+
+function updateIcsButtonState() {
+  const btn = document.getElementById("btn-download-ics");
+  const val = document.getElementById("f-scheduled").value;
+  btn.disabled = !val;
+}
+
+function renderScheduleHistory(card) {
+  const wrap = document.getElementById("schedule-history");
+  const block = document.getElementById("schedule-history-block");
+  const history = (card?.scheduleHistory || []).slice().sort((a, b) => {
+    // Sort newest → oldest by the scheduled time
+    return (b.at || "").localeCompare(a.at || "");
+  });
+  wrap.innerHTML = "";
+  if (!history.length) { block.style.display = "none"; return; }
+  block.style.display = "";
+  history.forEach(h => {
+    const col = state.columns.find(c => c.id === h.colId);
+    const row = document.createElement("div");
+    row.className = "schedule-history-row";
+    const name = document.createElement("span");
+    name.className = "stage-name";
+    name.textContent = col ? col.title : (h.stageTitle || "(removed stage)");
+    const when = document.createElement("span");
+    when.className = "stage-when";
+    when.textContent = formatDateTime(h.at);
+    row.append(name, when);
+    wrap.appendChild(row);
+  });
+}
+
+function formatDateTime(s) {
+  if (!s) return "";
+  try {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleString(undefined, {
+      month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit",
+    });
+  } catch (e) { return s; }
+}
+function findColumnForCard(cardId) {
+  return state.columns.find(c => c.cardIds.includes(cardId));
+}
+function closeJobModal() {
+  jobModal.classList.remove("open");
+  editingCardId = null;
+  editingTargetColId = null;
+}
+function saveJobFromForm() {
+  const company = document.getElementById("f-company").value.trim();
+  const role = document.getElementById("f-role").value.trim();
+  if (!company || !role) {
+    alert("Company and role are required.");
+    return;
+  }
+  const formScheduledAt = document.getElementById("f-scheduled").value;
+  const data = {
+    company, role,
+    pay: document.getElementById("f-pay").value.trim(),
+    mode: document.getElementById("f-mode").value,
+    location: document.getElementById("f-location").value.trim(),
+    website: document.getElementById("f-website").value.trim(),
+    url: document.getElementById("f-url").value.trim(),
+    dateApplied: document.getElementById("f-date").value,
+    scheduledAt: formScheduledAt,
+    notes: document.getElementById("f-notes").value.trim(),
+  };
+  const selectedStageColId = document.getElementById("f-stage").value;
+  if (editingCardId) {
+    const existing = state.cards[editingCardId];
+    const currentCol = findColumnForCard(editingCardId);
+    const stageChanged = !!(selectedStageColId && currentCol && currentCol.id !== selectedStageColId);
+    const scheduledChanged = (existing.scheduledAt || "") !== (formScheduledAt || "");
+
+    // Apply the form data first
+    state.cards[editingCardId] = { ...existing, ...data, updatedAt: Date.now() };
+    const card = state.cards[editingCardId];
+
+    // If the user is advancing to a new stage, snapshot the OLD scheduled time
+    // into history under the OLD stage, then reset the scheduled field.
+    if (stageChanged) {
+      if (existing.scheduledAt) {
+        appendScheduleHistory(card, currentCol.id, existing.scheduledAt, currentCol.title);
+      }
+      card.scheduledAt = "";
+      const targetCol = state.columns.find(c => c.id === selectedStageColId);
+      currentCol.cardIds = currentCol.cardIds.filter(id => id !== editingCardId);
+      targetCol.cardIds.push(editingCardId);
+      recordStageTransition(editingCardId, selectedStageColId);
+    } else if (scheduledChanged && existing.scheduledAt) {
+      // Same stage, but the scheduled time changed — log the previous value so
+      // rescheduled calls still show up in history.
+      appendScheduleHistory(card, currentCol.id, existing.scheduledAt, currentCol.title);
+    }
+  } else {
+    const id = kid();
+    const now = Date.now();
+    const col =
+      state.columns.find(c => c.id === selectedStageColId) ||
+      state.columns.find(c => c.id === editingTargetColId) ||
+      state.columns[0];
+    state.cards[id] = {
+      id, ...data,
+      createdAt: now,
+      updatedAt: now,
+      stageHistory: [{ colId: col.id, enteredAt: now }],
+      scheduleHistory: [],
+    };
+    col.cardIds.push(id);
+  }
+  persist();
+  render();
+  closeJobModal();
+}
+
+function appendScheduleHistory(card, colId, at, stageTitle) {
+  if (!Array.isArray(card.scheduleHistory)) card.scheduleHistory = [];
+  card.scheduleHistory.push({ colId, at, stageTitle, recordedAt: Date.now() });
+}
+function deleteJob() {
+  if (!editingCardId) return;
+  if (!confirm("Delete this job?")) return;
+  delete state.cards[editingCardId];
+  state.columns.forEach(c => {
+    c.cardIds = c.cardIds.filter(id => id !== editingCardId);
+  });
+  persist();
+  render();
+  closeJobModal();
+}
+document.getElementById("btn-save-job").addEventListener("click", saveJobFromForm);
+document.getElementById("btn-cancel-job").addEventListener("click", closeJobModal);
+document.getElementById("btn-delete-job").addEventListener("click", deleteJob);
+jobForm.addEventListener("submit", (e) => { e.preventDefault(); saveJobFromForm(); });
+jobModal.addEventListener("click", (e) => { if (e.target === jobModal) closeJobModal(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && jobModal.classList.contains("open")) closeJobModal();
+});
+
+/* ---------- Column menu ---------- */
+const colMenu = document.getElementById("col-menu");
+let menuColId = null;
+function openColMenu(colId, anchor) {
+  menuColId = colId;
+  const r = anchor.getBoundingClientRect();
+  colMenu.style.top = (r.bottom + 4) + "px";
+  colMenu.style.left = Math.max(8, r.right - 160) + "px";
+  colMenu.classList.add("open");
+}
+function closeColMenu() { colMenu.classList.remove("open"); menuColId = null; }
+document.addEventListener("click", (e) => {
+  if (!colMenu.contains(e.target)) closeColMenu();
+});
+colMenu.addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || !menuColId) return;
+  const action = btn.dataset.action;
+  const idx = state.columns.findIndex(c => c.id === menuColId);
+  if (action === "rename") {
+    const col = state.columns.find(c => c.id === menuColId);
+    const v = prompt("Rename column:", col.title);
+    if (v && v.trim()) { col.title = v.trim(); persist(); render(); }
+  } else if (action === "add-left") {
+    closeColMenu();
+    addColumn(idx);
+    return;
+  } else if (action === "add-right") {
+    closeColMenu();
+    addColumn(idx + 1);
+    return;
+  } else if (action === "delete") {
+    closeColMenu();
+    deleteColumn(menuColId);
+    return;
+  }
+  closeColMenu();
+});
+
+/* ---------- Import / export ---------- */
+document.getElementById("btn-export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "jobs.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+async function handleImportedFile(file) {
+  try {
+    const text = await file.text();
+    const isMarkdown = /\.(md|markdown|txt)$/i.test(file.name) || !text.trim().startsWith("{");
+    if (isMarkdown) {
+      const rows = parseMarkdownTable(text);
+      if (rows.length === 0) {
+        alert("Couldn't find a table in that file. Make sure it has | Company | Role | ... | columns.");
+        return;
+      }
+      const ok = confirm(
+        `Found ${rows.length} job(s) in the markdown file.\n\n` +
+        `OK  = Merge into your current board (skips companies/roles you already have)\n` +
+        `Cancel = Leave board alone`
+      );
+      if (!ok) return;
+      mergeRowsIntoBoard(rows);
+      persist();
+      render();
+      return;
+    }
+    const incoming = JSON.parse(text);
+    const normalized = normalizeState(incoming);
+    if (!confirm("Replace your current board with this file's data?")) return;
+    state = normalized;
+    persist();
+    render();
+  } catch (e) {
+    alert("Couldn't read that file: " + e.message);
+  }
+}
+
+document.getElementById("btn-import").addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  // Intentionally no `accept` attribute — macOS Finder grays out `.md` files when
+  // the system doesn't recognize the markdown MIME type, so we accept anything
+  // and validate by content/extension in handleImportedFile.
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    if (file) handleImportedFile(file);
+  });
+  input.click();
+});
+
+// Drag-and-drop anywhere on the page as a backup path
+["dragenter","dragover"].forEach(ev =>
+  window.addEventListener(ev, (e) => {
+    if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")) {
+      e.preventDefault();
+    }
+  })
+);
+window.addEventListener("drop", (e) => {
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+  e.preventDefault();
+  handleImportedFile(file);
+});
+
+function parseMarkdownTable(md) {
+  // Find the first markdown table with a header row.
+  const lines = md.split(/\r?\n/);
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const row = lines[i].trim();
+    const sep = (lines[i + 1] || "").trim();
+    if (row.startsWith("|") && /^\|[\s:|-]+\|$/.test(sep) && sep.includes("-")) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) return [];
+  const splitRow = (s) => s.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  const headers = splitRow(lines[headerIdx]).map(h => h.toLowerCase());
+  const dataRows = [];
+  for (let i = headerIdx + 2; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim().startsWith("|")) break; // end of table
+    const cells = splitRow(line);
+    if (cells.every(c => c === "" || c === "—" || c === "-")) continue;
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (cells[idx] ?? "").replace(/^—$/, "").trim(); });
+    dataRows.push(obj);
+  }
+  return dataRows;
+}
+
+function mergeRowsIntoBoard(rows) {
+  // Ensure a reasonable default column exists
+  const fallbackCol = state.columns.find(c => /applied/i.test(c.title)) || state.columns[0];
+
+  // Index existing cards by normalized company+role to avoid duplicates
+  const existingKeys = new Set();
+  Object.values(state.cards).forEach(c => {
+    existingKeys.add(((c.company || "") + "|" + (c.role || "")).toLowerCase());
+  });
+
+  let added = 0;
+  for (const row of rows) {
+    const company = row.company || "";
+    const role = row.role || "";
+    if (!company || !role) continue;
+    const key = (company + "|" + role).toLowerCase();
+    if (existingKeys.has(key)) continue;
+
+    // Resolve target column by the Stage cell if present
+    let targetCol = fallbackCol;
+    if (row.stage) {
+      const match = state.columns.find(c => c.title.toLowerCase() === row.stage.toLowerCase());
+      if (match) targetCol = match;
+    }
+
+    const id = kid();
+    const now = Date.now();
+    const appliedDate = normalizeDate(row.applied);
+    // Seed the stageHistory entry with the applied date if we have one so
+    // duration math works from day one for freshly-imported rows.
+    const enteredAt = appliedDate ? dateToTs(appliedDate) : now;
+    state.cards[id] = {
+      id,
+      company,
+      role,
+      pay: row.pay || "",
+      mode: normalizeMode(row.mode),
+      location: row.location || "",
+      website: row.website || "",
+      url: row.url || "",
+      dateApplied: appliedDate,
+      scheduledAt: "",
+      stageHistory: [{ colId: targetCol.id, enteredAt }],
+      scheduleHistory: [],
+      notes: row.notes || "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    targetCol.cardIds.push(id);
+    existingKeys.add(key);
+    added++;
+  }
+  alert(`Added ${added} job(s). ${rows.length - added} skipped as duplicates.`);
+}
+
+function normalizeMode(v) {
+  if (!v) return "";
+  const s = v.trim().toLowerCase();
+  if (s.startsWith("rem")) return "Remote";
+  if (s.startsWith("hyb")) return "Hybrid";
+  if (s.startsWith("ons") || s === "in-office" || s === "onsite") return "Onsite";
+  return "";
+}
+function normalizeDate(v) {
+  if (!v) return "";
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+document.getElementById("btn-sync").addEventListener("click", pickSyncFile);
+
+/* ---------- Stats ---------- */
+function renderStats() {
+  // Summary by stage group
+  let active = 0, offer = 0, rejected = 0;
+  state.columns.forEach(col => {
+    const n = col.cardIds.length;
+    if (/offer/i.test(col.title)) offer += n;
+    else if (/(rejected|closed|withdrawn)/i.test(col.title)) rejected += n;
+    else active += n;
+  });
+  const summary = document.getElementById("stats-summary");
+  summary.innerHTML =
+    `<span><span class="num">${active}</span>active</span>` +
+    `<span><span class="num">${offer}</span>offer</span>` +
+    `<span><span class="num">${rejected}</span>closed</span>` +
+    `<span><span class="num">${Object.keys(state.cards).length}</span>total</span>`;
+
+  // Total days of search, from the earliest known applied date
+  const appliedDates = Object.values(state.cards)
+    .map(c => c.dateApplied)
+    .filter(Boolean)
+    .sort();
+  const searchEl = document.getElementById("stats-search");
+  if (appliedDates.length) {
+    const firstDate = appliedDates[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const first = new Date(firstDate + "T00:00:00");
+    const days = Math.max(0, Math.round((today - first) / 86400000));
+    searchEl.innerHTML =
+      `<span><span class="num">${days}</span>day${days === 1 ? "" : "s"}</span>` +
+      `<span style="color:var(--text-faint);margin-left:8px;font-size:13px">since ${formatDate(firstDate)}</span>`;
+    searchEl.className = "stats-summary";
+  } else {
+    searchEl.innerHTML = `<span style="color:var(--text-faint);font-size:14px">No applications yet</span>`;
+  }
+}
+
+/* ---------- Calendar (.ics) export ---------- */
+// Keep the enable/disable state of the .ics button in sync with the input
+document.getElementById("f-scheduled").addEventListener("input", updateIcsButtonState);
+
+document.getElementById("btn-download-ics").addEventListener("click", () => {
+  const scheduled = document.getElementById("f-scheduled").value;
+  if (!scheduled) return;
+  const company = document.getElementById("f-company").value.trim() || "Company";
+  const role = document.getElementById("f-role").value.trim() || "Role";
+  const location = document.getElementById("f-location").value.trim();
+  const notes = document.getElementById("f-notes").value.trim();
+  const url = document.getElementById("f-url").value.trim();
+  // Stage the card is currently in (or being moved to) for the summary line.
+  const stageColId = document.getElementById("f-stage").value;
+  const stageCol = state.columns.find(c => c.id === stageColId);
+  const stage = stageCol ? stageCol.title : "";
+
+  const ics = buildIcs({
+    id: editingCardId || ("new-" + Date.now()),
+    start: scheduled,
+    durationMinutes: 30,
+    summary: (stage ? stage + " · " : "") + company + " — " + role,
+    description: [url, notes].filter(Boolean).join("\n\n"),
+    location,
+  });
+  const fname = (company.replace(/[^a-z0-9]+/gi, "-") + "-" + role.replace(/[^a-z0-9]+/gi, "-") + ".ics")
+    .replace(/-+/g, "-").toLowerCase();
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href;
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(href);
+});
+
+function buildIcs({ id, start, durationMinutes, summary, description, location }) {
+  // Parse "YYYY-MM-DDTHH:MM" as a floating local time
+  const [d, t] = start.split("T");
+  const [Y, Mo, Da] = d.split("-").map(Number);
+  const [H, Mi] = (t || "09:00").split(":").map(Number);
+  const startDate = new Date(Y, Mo - 1, Da, H, Mi || 0);
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+  const pad = (n) => String(n).padStart(2, "0");
+  const floatingFmt = (dt) =>
+    dt.getFullYear() + pad(dt.getMonth() + 1) + pad(dt.getDate()) +
+    "T" + pad(dt.getHours()) + pad(dt.getMinutes()) + "00";
+  // DTSTAMP must be UTC (ends with Z)
+  const now = new Date();
+  const utcFmt = (dt) =>
+    dt.getUTCFullYear() + pad(dt.getUTCMonth() + 1) + pad(dt.getUTCDate()) +
+    "T" + pad(dt.getUTCHours()) + pad(dt.getUTCMinutes()) + pad(dt.getUTCSeconds()) + "Z";
+  const esc = (s) => String(s || "")
+    .replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Job Tracker//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:" + id + "-" + Date.now() + "@jobtracker",
+    "DTSTAMP:" + utcFmt(now),
+    "DTSTART:" + floatingFmt(startDate),
+    "DTEND:" + floatingFmt(endDate),
+    "SUMMARY:" + esc(summary),
+    description ? "DESCRIPTION:" + esc(description) : "",
+    location ? "LOCATION:" + esc(location) : "",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean);
+  return lines.join("\r\n") + "\r\n";
+}
+
+/* ---------- Boot ---------- */
+render();
+updateSyncStatus();
+</script>
+</body>
+</html>
