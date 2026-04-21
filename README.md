@@ -4,6 +4,11 @@ A lightweight kanban board for tracking job applications through the interview p
 
 Your data lives on your machine. You can optionally sync it to a local `jobs.json` file that travels with you.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="screenshot-dark.png">
+  <img src="screenshot-light.png" alt="Job Tracker board with sample applications">
+</picture>
+
 ## Features
 
 - Drag-and-drop kanban board for organizing job applications
@@ -85,6 +90,8 @@ The table must have a header row, a separator row, and one row per job. The impo
 - **Notes**
 
 Click **Import** in the tracker and pick the `.md` file. The importer merges into your existing board — it skips rows whose company+role already exists, so re-importing after edits is safe.
+
+> The beauty of this is now you can do whatever you want with the `.md` file — visualize it, generate a story, up to you how creative you want to be.
 
 ## Data format
 
