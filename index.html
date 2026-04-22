@@ -5,75 +5,95 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Job Tracker</title>
 <style>
+  /* Notion-inspired palette: warm off-whites, a single blue accent, and
+     generous whitespace. Light mode is the default; dark mode mirrors
+     Notion's "dark" theme (#191919 canvas, muted warm-off-white text). */
   :root {
-    --bg: #0f1115;
-    --bg-elev: #171a21;
-    --bg-elev-2: #1e222b;
-    --border: #262b36;
-    --border-strong: #34394a;
-    --text: #e6e8ee;
-    --text-dim: #9ba1b0;
-    --text-faint: #6b7180;
-    --accent: #7aa2ff;
-    --accent-dim: #3a4a7a;
-    --danger: #ff7a7a;
-    --success: #6fcf97;
-    --warning: #f2c94c;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.25);
-    --radius: 10px;
-    --radius-sm: 6px;
+    --bg: #ffffff;
+    --bg-elev: #f7f7f5;
+    --bg-elev-2: #f1f1ef;
+    --bg-hover: #efefee;
+    --border: #ebebea;
+    --border-strong: #d9d9d6;
+    --text: #37352f;
+    --text-dim: #787774;
+    --text-faint: #9b9a97;
+    --accent: #2383e2;
+    --accent-dim: #d1e5f5;
+    --accent-soft: #e7f3fb;
+    --danger: #e03e3e;
+    --danger-soft: #fbe4e4;
+    --success: #0f7b0f;
+    --warning: #dfaa24;
+    --shadow: 0 1px 2px rgba(15,15,15,.03), 0 4px 14px rgba(15,15,15,.06);
+    --shadow-soft: 0 1px 0 rgba(55,53,47,.09);
+    --radius: 8px;
+    --radius-sm: 5px;
     --col-width: 300px;
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #f6f7f9;
-      --bg-elev: #ffffff;
-      --bg-elev-2: #f0f2f6;
-      --border: #e3e6eb;
-      --border-strong: #cdd2db;
-      --text: #1a1d24;
-      --text-dim: #5a6170;
-      --text-faint: #8d94a3;
-      --accent: #3458d6;
-      --accent-dim: #b8c7ef;
-      --shadow: 0 1px 2px rgba(15,20,30,.06), 0 6px 20px rgba(15,20,30,.08);
+      --bg: #191919;
+      --bg-elev: #202020;
+      --bg-elev-2: #2a2a2a;
+      --bg-hover: #2f2f2f;
+      --border: #2f2f2f;
+      --border-strong: #3f3f3f;
+      --text: #e6e6e4;
+      --text-dim: #9b9a97;
+      --text-faint: #6f6e6b;
+      --accent: #529cca;
+      --accent-dim: #2b4052;
+      --accent-soft: #1e3445;
+      --danger: #ff7369;
+      --danger-soft: #3d2222;
+      --success: #529e52;
+      --warning: #cb912f;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 22px rgba(0,0,0,.22);
+      --shadow-soft: 0 1px 0 rgba(0,0,0,.35);
     }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body {
-    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font: 14px/1.5 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Inter, "Helvetica Neue", Arial, "Apple Color Emoji", sans-serif;
     color: var(--text);
     background: var(--bg);
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   header {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
-    background: transparent;
-    height: 56px;
+    padding: 10px 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    height: 52px;
   }
   header h1 {
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 600;
     margin: 0;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.005em;
+    color: var(--text);
   }
   header .spacer { flex: 1; }
   .file-status {
     font-size: 12px;
     color: var(--text-dim);
     padding: 4px 10px;
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    border: 1px solid transparent;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     white-space: nowrap;
+    font-weight: 500;
   }
   .file-status .dot {
     width: 6px; height: 6px; border-radius: 50%;
@@ -84,26 +104,30 @@
 
   button, .btn {
     appearance: none;
-    border: 1px solid var(--border-strong);
-    background: var(--bg-elev-2);
+    border: 1px solid transparent;
+    background: var(--bg-elev);
     color: var(--text);
-    padding: 6px 12px;
+    padding: 5px 12px;
     border-radius: var(--radius-sm);
     font-size: 13px;
+    font-weight: 500;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    box-shadow: var(--shadow-soft);
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
   }
-  button:hover, .btn:hover { background: var(--border); }
+  button:hover, .btn:hover { background: var(--bg-hover); }
   button.primary {
     background: var(--accent);
-    border-color: var(--accent);
+    border-color: transparent;
     color: #fff;
+    box-shadow: 0 1px 1px rgba(15,15,15,.08);
   }
-  button.primary:hover { filter: brightness(1.08); }
+  button.primary:hover { background: #1a6bbf; }
   button.ghost {
     background: transparent;
     border-color: transparent;
+    box-shadow: none;
     color: var(--text-dim);
     padding: 4px 8px;
   }
@@ -112,18 +136,20 @@
     color: var(--danger);
     border-color: transparent;
     background: transparent;
+    box-shadow: none;
   }
-  button.danger:hover { background: rgba(255,122,122,.1); }
+  button.danger:hover { background: var(--danger-soft); }
 
   .board-wrap {
-    height: calc(100vh - 56px - 72px);
+    height: calc(100vh - 52px - 68px);
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 16px 20px 24px;
+    padding: 20px 24px 28px;
+    background: var(--bg);
   }
   .board {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     align-items: flex-start;
     height: 100%;
     min-width: min-content;
@@ -133,7 +159,7 @@
     flex: 0 0 var(--col-width);
     width: var(--col-width);
     background: var(--bg-elev);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     border-radius: var(--radius);
     display: flex;
     flex-direction: column;
@@ -142,20 +168,22 @@
   }
   .column.drag-over {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-dim);
+    background: var(--accent-soft);
   }
   .column-header {
-    padding: 10px 12px;
+    padding: 10px 12px 8px;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid var(--border);
     cursor: grab;
   }
   .column-header:active { cursor: grabbing; }
   .column-title {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -168,15 +196,16 @@
   .column-title:focus {
     outline: none;
     border-color: var(--border-strong);
-    background: var(--bg-elev-2);
+    background: var(--bg);
   }
   .count {
     font-size: 11px;
     color: var(--text-faint);
-    background: var(--bg-elev-2);
+    background: transparent;
     padding: 2px 6px;
     border-radius: 999px;
     font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
   .col-menu-btn {
     width: 24px; height: 24px;
@@ -203,15 +232,19 @@
   .cards::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
   .card {
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border);
+    background: var(--bg);
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
     padding: 10px 12px;
     cursor: grab;
-    transition: border-color .12s, transform .12s, box-shadow .12s;
+    box-shadow: var(--shadow-soft);
+    transition: background .12s, border-color .12s, box-shadow .12s;
     position: relative;
   }
-  .card:hover { border-color: var(--border-strong); }
+  .card:hover {
+    background: var(--bg);
+    box-shadow: 0 1px 2px rgba(15,15,15,.06), 0 4px 12px rgba(15,15,15,.05);
+  }
   .card.dragging { opacity: 0.4; cursor: grabbing; }
   .card-head {
     display: flex;
@@ -264,15 +297,16 @@
   .chip {
     font-size: 11px;
     color: var(--text-dim);
-    background: var(--bg-elev);
+    background: var(--bg-elev-2);
     padding: 2px 7px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
+    border-radius: 4px;
+    border: 1px solid transparent;
     white-space: nowrap;
+    font-weight: 500;
   }
   .chip.accent {
     color: var(--accent);
-    border-color: var(--accent-dim);
+    background: var(--accent-soft);
   }
   .card-footer {
     margin-top: 6px;
@@ -283,41 +317,46 @@
   }
 
   .add-card-btn {
-    padding: 8px 10px;
-    margin: 0 8px 8px;
+    padding: 6px 10px;
+    margin: 0 8px 10px;
     width: calc(100% - 16px);
     text-align: left;
-    color: var(--text-dim);
-    border: 1px dashed var(--border-strong);
+    color: var(--text-faint);
+    border: 1px solid transparent;
     background: transparent;
+    box-shadow: none;
     font-size: 12.5px;
+    font-weight: 500;
   }
-  .add-card-btn:hover { color: var(--text); border-color: var(--accent-dim); background: var(--bg-elev-2); }
+  .add-card-btn:hover { color: var(--text-dim); background: var(--bg-elev-2); }
 
   .add-column {
     flex: 0 0 var(--col-width);
     width: var(--col-width);
-    height: 48px;
+    height: 44px;
     border: 1px dashed var(--border-strong);
     background: transparent;
-    color: var(--text-dim);
+    box-shadow: none;
+    color: var(--text-faint);
     border-radius: var(--radius);
+    font-weight: 500;
   }
-  .add-column:hover { color: var(--text); border-color: var(--accent-dim); background: var(--bg-elev); }
+  .add-column:hover { color: var(--text-dim); border-color: var(--border-strong); background: var(--bg-elev); }
 
   /* Modal */
   .modal-backdrop {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,.5);
+    background: rgba(15,15,15,.35);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 100;
     padding: 20px;
+    backdrop-filter: blur(1px);
   }
   .modal-backdrop.open { display: flex; }
   .modal {
-    background: var(--bg-elev);
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     max-width: 560px;
@@ -325,18 +364,20 @@
     max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow);
+    box-shadow: 0 2px 6px rgba(15,15,15,.06), 0 16px 48px rgba(15,15,15,.14);
   }
   .modal header {
     border-bottom: 1px solid var(--border);
     padding: 14px 20px;
     height: auto;
+    background: var(--bg);
   }
   .modal header h2 {
     margin: 0;
     font-size: 15px;
     font-weight: 600;
     flex: 1;
+    color: var(--text);
   }
   .modal form {
     padding: 16px 20px;
@@ -357,25 +398,34 @@
   label {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
+    gap: 5px;
+    font-size: 11px;
     color: var(--text-dim);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   input[type=text], input[type=url], input[type=date], select, textarea {
     width: 100%;
     font: inherit;
     font-size: 13.5px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
     padding: 7px 10px;
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+    border: 1px solid transparent;
     color: var(--text);
     border-radius: var(--radius-sm);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition: box-shadow 0.12s, background 0.12s;
   }
   input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: transparent;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px var(--accent-soft);
   }
   textarea { resize: vertical; min-height: 72px; font-family: inherit; }
 
@@ -442,25 +492,32 @@
     font: inherit;
     font-size: 13.5px;
     padding: 7px 10px;
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+    border: 1px solid transparent;
     color: var(--text);
     border-radius: var(--radius-sm);
+    box-shadow: inset 0 0 0 1px var(--border);
   }
-  input[type="datetime-local"]:focus { outline: none; border-color: var(--accent); }
+  input[type="datetime-local"]:focus {
+    outline: none;
+    background: var(--bg);
+    box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px var(--accent-soft);
+  }
 
   .ics-btn-full {
     width: 100%;
-    padding: 9px 12px;
+    padding: 8px 12px;
     font-size: 13px;
     text-align: center;
-    background: var(--bg-elev-2);
-    color: var(--text);
-    border: 1px solid var(--border-strong);
+    background: var(--bg-elev);
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-soft);
     border-radius: var(--radius-sm);
     margin-top: 4px;
+    font-weight: 500;
   }
-  .ics-btn-full:not(:disabled):hover { border-color: var(--accent); color: var(--accent); }
+  .ics-btn-full:not(:disabled):hover { background: var(--bg-hover); color: var(--text); }
   .ics-btn-full:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .schedule-history {
@@ -501,22 +558,25 @@
     flex: 1;
     appearance: none;
     -webkit-appearance: none;
-    background: var(--bg-elev-2);
+    background: var(--bg-elev);
     color: var(--text);
-    border: 1px solid var(--border-strong);
+    border: 1px solid transparent;
+    box-shadow: inset 0 0 0 1px var(--border);
     border-radius: var(--radius-sm);
     padding: 6px 28px 6px 10px;
-    font-size: 12px;
+    font-size: 12.5px;
     font-family: inherit;
     cursor: pointer;
-    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
-                      linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-faint) 50%),
+                      linear-gradient(135deg, var(--text-faint) 50%, transparent 50%);
     background-position: calc(100% - 14px) center, calc(100% - 9px) center;
     background-size: 5px 5px, 5px 5px;
     background-repeat: no-repeat;
+    text-transform: none;
+    letter-spacing: normal;
   }
-  .ref-picker:hover { border-color: var(--accent); }
-  .ref-picker:focus { outline: none; border-color: var(--accent); }
+  .ref-picker:hover { background-color: var(--bg-hover); }
+  .ref-picker:focus { outline: none; box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px var(--accent-soft); }
   .ref-picker:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Linked-jobs / backlinks chips in the modal */
@@ -531,18 +591,19 @@
     align-items: center;
     gap: 6px;
     padding: 3px 10px;
-    border: 1px solid var(--border-strong);
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-soft);
     border-radius: 999px;
     font-size: 12px;
+    font-weight: 500;
     color: var(--text);
-    background: var(--bg-elev-2);
+    background: var(--bg-elev);
     cursor: pointer;
     text-decoration: none;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    transition: background 0.12s, color 0.12s, box-shadow 0.12s;
   }
   .link-chip:hover {
-    background: var(--border);
-    border-color: var(--accent);
+    background: var(--accent-soft);
     color: var(--accent);
   }
   .link-chip.unresolved {
@@ -566,76 +627,74 @@
   }
   .notes-preview {
     background: var(--bg-elev);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
-    padding: 8px 10px;
+    padding: 10px 12px;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--text);
     white-space: pre-wrap;
     word-wrap: break-word;
     min-height: 1.5em;
   }
   .notes-preview:empty::before {
-    content: "Preview appears here as you type. [[wikilinks]] render as chips.";
+    content: "Preview appears here as you type. @mentions render as chips.";
     color: var(--text-faint);
     font-style: italic;
   }
-  /* Inline chip — appears in the flow of preview text, with a background */
+  /* Inline chip — appears in the flow of preview text, with a soft background.
+     Mirrors Notion's mention pill: soft blue fill, accent-blue text. */
   .wiki-chip {
     display: inline;
-    padding: 1px 7px;
+    padding: 1px 6px;
     margin: 0 1px;
     border-radius: 4px;
-    background: var(--accent-dim, rgba(99, 132, 255, 0.18));
+    background: var(--accent-soft);
     color: var(--accent);
-    border: 1px solid var(--accent-dim, rgba(99, 132, 255, 0.28));
-    font-size: 0.92em;
+    border: 1px solid transparent;
+    font-size: 0.93em;
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.12s, color 0.12s;
   }
   .wiki-chip:hover {
-    background: var(--accent);
-    color: var(--bg);
+    background: var(--accent-dim);
   }
   .wiki-chip.unresolved {
-    background: transparent;
+    background: var(--bg-elev-2);
     color: var(--text-faint);
-    border-style: dashed;
+    border: 1px dashed var(--border-strong);
     cursor: default;
     font-style: italic;
   }
   .wiki-chip.unresolved:hover {
-    background: transparent;
+    background: var(--bg-elev-2);
     color: var(--text-faint);
   }
 
   /* Card scheduled-date pill */
   .chip.scheduled {
     color: var(--accent);
-    border-color: var(--accent-dim);
-    background: var(--bg-elev);
+    background: var(--accent-soft);
     font-weight: 600;
   }
 
   /* Stats bar at the bottom */
   .stats-bar {
     position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 14px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 30;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 12px 20px 14px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 12px 24px 14px;
     display: flex;
     gap: 24px;
     align-items: stretch;
-    height: 72px;
+    height: 68px;
     overflow: hidden;
   }
   .stats-label {
@@ -749,7 +808,7 @@
       </div>
       <button type="button" id="btn-download-ics" class="ics-btn-full" title="Download a calendar invite (.ics) for the scheduled time" disabled>Download calendar invite (.ics)</button>
       <label>Notes
-        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Type [[ to reference another job."></textarea>
+        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Type @ to reference another job."></textarea>
       </label>
       <div class="ref-picker-row" id="ref-picker-row" style="display:none">
         <span class="ref-picker-label">Pick a job to insert</span>
@@ -1340,20 +1399,41 @@ function openJobModal(cardId, targetColId) {
   setTimeout(() => document.getElementById("f-company").focus(), 40);
 }
 
-/* ---------- Reference picker (only shows while you're inside [[…) ---------- */
-// Returns { open: number, partial: string } if the cursor is inside an
-// unclosed [[ — i.e., the most recent [[ before the cursor has no matching
-// ]] before the cursor — or null otherwise.
+/* ---------- Reference picker (only shows while you're mid-@mention) ---------- */
+// Returns { open: number, partial: string } if the cursor is immediately
+// after an @ that isn't part of a word (so email addresses don't trigger),
+// and the user hasn't yet typed anything that ends the mention (whitespace,
+// bracket, etc.). Returns null otherwise. Also still supports the legacy
+// Obsidian-style [[ trigger for anyone with muscle memory from before.
 function activeWikilinkContext() {
   const ta = document.getElementById("f-notes");
   if (!ta) return null;
   const cursor = ta.selectionStart;
   const before = ta.value.slice(0, cursor);
+
+  // @mention context — `@` at start-of-string or after non-word char.
+  const lastAt = before.lastIndexOf("@");
+  if (lastAt !== -1) {
+    const prevCh = lastAt === 0 ? "" : before[lastAt - 1];
+    const validBoundary = lastAt === 0 || !/\w/.test(prevCh);
+    if (validBoundary) {
+      const partial = before.slice(lastAt + 1);
+      // Mention ends if user hits whitespace, newline, or a bracket.
+      if (!/[\s\[\]]/.test(partial)) {
+        return { open: lastAt, partial, triggerLen: 1 };
+      }
+    }
+  }
+
+  // Legacy [[ trigger — kept so existing muscle memory keeps working.
   const lastOpen = before.lastIndexOf("[[");
-  if (lastOpen === -1) return null;
-  const lastClose = before.lastIndexOf("]]");
-  if (lastClose !== -1 && lastClose > lastOpen) return null;
-  return { open: lastOpen, partial: before.slice(lastOpen + 2) };
+  if (lastOpen !== -1) {
+    const lastClose = before.lastIndexOf("]]");
+    if (lastClose === -1 || lastClose <= lastOpen) {
+      return { open: lastOpen, partial: before.slice(lastOpen + 2), triggerLen: 2 };
+    }
+  }
+  return null;
 }
 
 // Show / hide / re-filter the picker based on the cursor context.
@@ -1401,16 +1481,16 @@ document.getElementById("ref-picker").addEventListener("change", (e) => {
   e.target.selectedIndex = 0;
 });
 
-// Replace the in-progress [[partial with a complete [[Company Name]] and
-// place the cursor right after the closing ]]. Falls back to a plain
-// insert if (somehow) there's no [[ before the cursor.
+// Replace the in-progress @partial (or [[partial) with a complete mention
+// token and place the cursor right after it. Uses `@[Company]` for
+// @-mentions and `[[Company]]` for the legacy trigger so both styles keep
+// working in the same notes.
 function completeWikilinkAtCursor(company) {
   const ta = document.getElementById("f-notes");
   const ctx = activeWikilinkContext();
-  const link = `[[${company}]]`;
+  const useAt = !ctx || ctx.triggerLen === 1;
+  const link = useAt ? `@[${company}]` : `[[${company}]]`;
   if (!ctx) {
-    // Shouldn't happen — picker is only shown when we're inside [[ — but
-    // be defensive just in case.
     const cursor = ta.selectionStart;
     ta.value = ta.value.slice(0, cursor) + link + ta.value.slice(cursor);
     ta.setSelectionRange(cursor + link.length, cursor + link.length);
@@ -1433,10 +1513,13 @@ const _notesEl = document.getElementById("f-notes");
   _notesEl.addEventListener(ev, updateRefPicker);
 });
 
-/* ---------- [[Wiki-style]] links between jobs ---------- */
-// Matches [[Target]] and [[Target|Alias]]. Target and alias are trimmed
-// and may contain any char except `[`, `]`, or `|`. Obsidian-compatible.
-const WIKILINK_RE = /\[\[([^\[\]|]+?)(?:\|([^\[\]|]+?))?\]\]/g;
+/* ---------- Job references: @mentions and [[wikilinks]] ---------- */
+// Matches two forms:
+//   @[Target]              or @[Target|Alias]           (front-end @-mention)
+//   [[Target]]             or [[Target|Alias]]          (Obsidian-compat)
+// Target and alias are trimmed. Inside brackets neither form may contain
+// `[`, `]`, or `|`. Both forms render as the same chip in the preview.
+const WIKILINK_RE = /@\[([^\[\]|]+?)(?:\|([^\[\]|]+?))?\]|\[\[([^\[\]|]+?)(?:\|([^\[\]|]+?))?\]\]/g;
 
 function parseWikilinks(text) {
   if (!text) return [];
@@ -1444,8 +1527,8 @@ function parseWikilinks(text) {
   let m;
   WIKILINK_RE.lastIndex = 0;
   while ((m = WIKILINK_RE.exec(text)) !== null) {
-    const target = (m[1] || "").trim();
-    const alias = (m[2] || "").trim();
+    const target = ((m[1] || m[3]) || "").trim();
+    const alias = ((m[2] || m[4]) || "").trim();
     if (target) out.push({ target, alias, raw: m[0] });
   }
   return out;
@@ -1478,13 +1561,13 @@ function renderNotesPreview() {
     if (match.index > cursor) {
       wrap.appendChild(document.createTextNode(notes.slice(cursor, match.index)));
     }
-    const target = (match[1] || "").trim();
-    const alias = (match[2] || "").trim();
+    const target = ((match[1] || match[3]) || "").trim();
+    const alias = ((match[2] || match[4]) || "").trim();
     const targetCard = findCardByCompany(target);
     const isSelf = targetCard && targetCard.id === editingCardId;
     const chip = document.createElement(targetCard && !isSelf ? "a" : "span");
     chip.className = "wiki-chip" + (targetCard ? "" : " unresolved");
-    chip.textContent = alias || target;
+    chip.textContent = "@" + (alias || target);
     if (targetCard && !isSelf) {
       chip.href = "#";
       const col = findColumnForCard(targetCard.id);

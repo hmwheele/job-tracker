@@ -94,21 +94,21 @@ Click **Import** in the tracker and pick the `.md` file. The importer merges int
 
 ## Linking jobs to each other
 
-You can reference another job from inside any card's Notes using wiki-style links:
+Reference another job from inside any card's Notes using an `@` mention:
 
 ```
-Recruiter pitched [[Wayne Enterprises]] as a similar role.
-Leveraging the [[Wayne Enterprises|Wayne]] timeline to set a deadline.
+Recruiter pitched @[Wayne Enterprises] as a similar role.
+Leveraging the @[Wayne Enterprises|Wayne] timeline to set a deadline.
 ```
 
-- `[[Company Name]]` — resolves to the card whose **Company** field matches, case-insensitive.
-- `[[Company Name|alias]]` — same, but renders with custom link text. Inside a markdown table cell, escape the pipe as `\|` so the table still parses.
-- Unresolved links (no matching company yet) render as a dashed chip so you know it's a placeholder.
-- **Live preview** — a Preview pane under the Notes field renders your notes with each `[[Company]]` turned into an inline highlighted chip you can click to jump to the target card. The Notes textarea itself (and the saved `jobs.json` / any exported markdown) keeps the raw `[[Company]]` syntax, so the same file is still a valid Obsidian vault.
+- **Type `@`** in the Notes field and a picker appears with every other job on your board. Keep typing to filter (`@Way` narrows to "Wayne Enterprises"), then pick from the dropdown — the in-progress `@partial` is replaced with a complete `@[Company Name]` and the picker disappears until your next `@`.
+- **The `@` is smart about boundaries** — typing a recruiter's email like `casey@wayne.com` does *not* trigger the picker, because the `@` is inside a word.
+- **Live preview** — a Preview pane under the Notes field renders your notes with each `@[Company]` turned into an inline highlighted chip you can click to jump to the target card. Chips appear inline, in the flow of your text, so your notes stay readable.
+- **`@[Company Name|alias]`** renders with custom link text. Inside a markdown table cell, escape the pipe as `\|` so the table still parses.
+- Unresolved references (no matching company yet) render as a dashed chip so you know it's a placeholder.
 - The destination card's modal automatically shows a **Referenced by** list of every card linking to it — two-way traversal without any extra bookkeeping.
-- **Don't want to remember exact company names?** Type `[[` in the Notes field and a picker appears below it with every other job in your board. Keep typing to filter (`[[Way` narrows to "Wayne Enterprises"), then pick from the dropdown — the in-progress `[[partial` is replaced with a complete `[[Company Name]]` and the picker disappears until your next `[[`.
 
-Because the syntax is plain `[[...]]`, the same file is a valid Obsidian vault — open `companies.md` in Obsidian and your links are real wikilinks there too.
+**Obsidian users:** the tracker also understands Obsidian-style `[[Company Name]]` wikilinks, so if you maintain `companies.md` as an Obsidian vault the links resolve there too. Both forms render identically in the Preview pane.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshot-modal-dark.png">
