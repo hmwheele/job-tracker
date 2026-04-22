@@ -560,6 +560,58 @@
     font-size: 10px;
   }
 
+  /* Live preview of notes — renders [[wikilinks]] as inline highlighted chips */
+  .notes-preview-block {
+    margin-top: 8px;
+  }
+  .notes-preview {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 1.5em;
+  }
+  .notes-preview:empty::before {
+    content: "Preview appears here as you type. [[wikilinks]] render as chips.";
+    color: var(--text-faint);
+    font-style: italic;
+  }
+  /* Inline chip — appears in the flow of preview text, with a background */
+  .wiki-chip {
+    display: inline;
+    padding: 1px 7px;
+    margin: 0 1px;
+    border-radius: 4px;
+    background: var(--accent-dim, rgba(99, 132, 255, 0.18));
+    color: var(--accent);
+    border: 1px solid var(--accent-dim, rgba(99, 132, 255, 0.28));
+    font-size: 0.92em;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, color 0.12s;
+  }
+  .wiki-chip:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .wiki-chip.unresolved {
+    background: transparent;
+    color: var(--text-faint);
+    border-style: dashed;
+    cursor: default;
+    font-style: italic;
+  }
+  .wiki-chip.unresolved:hover {
+    background: transparent;
+    color: var(--text-faint);
+  }
+
   /* Card scheduled-date pill */
   .chip.scheduled {
     color: var(--accent);
@@ -705,9 +757,9 @@
           <option value="">Choose…</option>
         </select>
       </div>
-      <div id="linked-jobs-block" style="display:none">
-        <div class="stats-label" style="margin-bottom:6px">Linked jobs</div>
-        <div class="link-chips" id="linked-jobs"></div>
+      <div class="notes-preview-block" id="notes-preview-block">
+        <div class="stats-label" style="margin-bottom:6px">Preview</div>
+        <div class="notes-preview" id="notes-preview"></div>
       </div>
       <div id="backlinks-block" style="display:none">
         <div class="stats-label" style="margin-bottom:6px">Referenced by</div>
@@ -1407,44 +1459,55 @@ function findCardByCompany(name) {
   ) || null;
 }
 
-function renderLinkChips() {
-  const block = document.getElementById("linked-jobs-block");
-  const wrap = document.getElementById("linked-jobs");
-  const notes = document.getElementById("f-notes").value;
-  const links = parseWikilinks(notes);
+// Render the notes into an inline preview where each [[wikilink]] appears as
+// a clickable chip with a background color. The raw markdown stays in the
+// textarea (and in any exported .md / companies.md file).
+function renderNotesPreview() {
+  const wrap = document.getElementById("notes-preview");
+  const notes = document.getElementById("f-notes").value || "";
   wrap.innerHTML = "";
-  if (!links.length) { block.style.display = "none"; return; }
-  // Dedupe by target (case-insensitive)
-  const seen = new Set();
-  links.forEach(({ target, alias }) => {
-    const key = target.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
+  if (!notes.trim()) return;
+
+  // Walk through notes, slicing out [[wikilink]] matches and keeping the
+  // surrounding plain text as text nodes. This preserves whitespace and
+  // newlines via CSS `white-space: pre-wrap` on the container.
+  WIKILINK_RE.lastIndex = 0;
+  let cursor = 0;
+  let match;
+  while ((match = WIKILINK_RE.exec(notes)) !== null) {
+    if (match.index > cursor) {
+      wrap.appendChild(document.createTextNode(notes.slice(cursor, match.index)));
+    }
+    const target = (match[1] || "").trim();
+    const alias = (match[2] || "").trim();
     const targetCard = findCardByCompany(target);
-    // Don't self-link (if a card's notes reference its own company)
-    if (targetCard && targetCard.id === editingCardId) return;
-    const chip = document.createElement(targetCard ? "a" : "span");
-    chip.className = "link-chip" + (targetCard ? "" : " unresolved");
+    const isSelf = targetCard && targetCard.id === editingCardId;
+    const chip = document.createElement(targetCard && !isSelf ? "a" : "span");
+    chip.className = "wiki-chip" + (targetCard ? "" : " unresolved");
     chip.textContent = alias || target;
-    if (targetCard) {
+    if (targetCard && !isSelf) {
       chip.href = "#";
       const col = findColumnForCard(targetCard.id);
       chip.title = `${targetCard.company} — ${targetCard.role}${col ? " · " + col.title : ""}`;
-      const arrow = document.createElement("span");
-      arrow.className = "arrow";
-      arrow.textContent = "↗";
-      chip.appendChild(arrow);
       chip.addEventListener("click", (e) => {
         e.preventDefault();
         openJobModal(targetCard.id);
       });
+    } else if (isSelf) {
+      chip.title = "This card";
     } else {
       chip.title = `No job matches "${target}" yet`;
     }
     wrap.appendChild(chip);
-  });
-  block.style.display = wrap.children.length ? "" : "none";
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < notes.length) {
+    wrap.appendChild(document.createTextNode(notes.slice(cursor)));
+  }
 }
+
+// Alias kept for call-site compatibility — renders the inline chip preview.
+function renderLinkChips() { renderNotesPreview(); }
 
 function renderBacklinks(card) {
   const block = document.getElementById("backlinks-block");

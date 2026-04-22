@@ -103,7 +103,8 @@ Leveraging the [[Wayne Enterprises|Wayne]] timeline to set a deadline.
 
 - `[[Company Name]]` — resolves to the card whose **Company** field matches, case-insensitive.
 - `[[Company Name|alias]]` — same, but renders with custom link text. Inside a markdown table cell, escape the pipe as `\|` so the table still parses.
-- Unresolved links (no matching company yet) render as a dimmed chip so you know it's a placeholder.
+- Unresolved links (no matching company yet) render as a dashed chip so you know it's a placeholder.
+- **Live preview** — a Preview pane under the Notes field renders your notes with each `[[Company]]` turned into an inline highlighted chip you can click to jump to the target card. The Notes textarea itself (and the saved `jobs.json` / any exported markdown) keeps the raw `[[Company]]` syntax, so the same file is still a valid Obsidian vault.
 - The destination card's modal automatically shows a **Referenced by** list of every card linking to it — two-way traversal without any extra bookkeeping.
 - **Don't want to remember exact company names?** Type `[[` in the Notes field and a picker appears below it with every other job in your board. Keep typing to filter (`[[Way` narrows to "Wayne Enterprises"), then pick from the dropdown — the in-progress `[[partial` is replaced with a complete `[[Company Name]]` and the picker disappears until your next `[[`.
 
@@ -111,7 +112,7 @@ Because the syntax is plain `[[...]]`, the same file is a valid Obsidian vault �
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshot-modal-dark.png">
-  <img src="screenshot-modal-light.png" alt="Job modal showing Linked jobs and Referenced by chips">
+  <img src="screenshot-modal-light.png" alt="Job modal showing the reference picker and inline preview chips">
 </picture>
 
 ## Data format
