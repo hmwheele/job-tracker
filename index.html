@@ -486,6 +486,47 @@
     white-space: nowrap;
   }
 
+  /* Linked-jobs / backlinks chips in the modal */
+  .link-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg-elev-2);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .link-chip:hover {
+    background: var(--border);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .link-chip.unresolved {
+    color: var(--text-faint);
+    cursor: default;
+    font-style: italic;
+  }
+  .link-chip.unresolved:hover {
+    background: var(--bg-elev-2);
+    border-color: var(--border-strong);
+    color: var(--text-faint);
+  }
+  .link-chip .arrow {
+    opacity: 0.55;
+    font-size: 10px;
+  }
+
   /* Card scheduled-date pill */
   .chip.scheduled {
     color: var(--accent);
@@ -623,8 +664,16 @@
       </div>
       <button type="button" id="btn-download-ics" class="ics-btn-full" title="Download a calendar invite (.ics) for the scheduled time" disabled>Download calendar invite (.ics)</button>
       <label>Notes
-        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes…"></textarea>
+        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Reference other jobs with [[Company Name]]."></textarea>
       </label>
+      <div id="linked-jobs-block" style="display:none">
+        <div class="stats-label" style="margin-bottom:6px">Linked jobs</div>
+        <div class="link-chips" id="linked-jobs"></div>
+      </div>
+      <div id="backlinks-block" style="display:none">
+        <div class="stats-label" style="margin-bottom:6px">Referenced by</div>
+        <div class="link-chips" id="backlinks"></div>
+      </div>
     </form>
     <footer>
       <button class="danger" id="btn-delete-job" style="display:none">Delete</button>
@@ -1192,10 +1241,115 @@ function openJobModal(cardId, targetColId) {
 
   updateIcsButtonState();
   renderScheduleHistory(card);
+  renderLinkChips();
+  renderBacklinks(card);
 
   jobModal.classList.add("open");
   setTimeout(() => document.getElementById("f-company").focus(), 40);
 }
+
+/* ---------- [[Wiki-style]] links between jobs ---------- */
+// Matches [[Target]] and [[Target|Alias]]. Target and alias are trimmed
+// and may contain any char except `[`, `]`, or `|`. Obsidian-compatible.
+const WIKILINK_RE = /\[\[([^\[\]|]+?)(?:\|([^\[\]|]+?))?\]\]/g;
+
+function parseWikilinks(text) {
+  if (!text) return [];
+  const out = [];
+  let m;
+  WIKILINK_RE.lastIndex = 0;
+  while ((m = WIKILINK_RE.exec(text)) !== null) {
+    const target = (m[1] || "").trim();
+    const alias = (m[2] || "").trim();
+    if (target) out.push({ target, alias, raw: m[0] });
+  }
+  return out;
+}
+
+function findCardByCompany(name) {
+  if (!name) return null;
+  const needle = name.trim().toLowerCase();
+  return Object.values(state.cards).find(
+    c => (c.company || "").trim().toLowerCase() === needle
+  ) || null;
+}
+
+function renderLinkChips() {
+  const block = document.getElementById("linked-jobs-block");
+  const wrap = document.getElementById("linked-jobs");
+  const notes = document.getElementById("f-notes").value;
+  const links = parseWikilinks(notes);
+  wrap.innerHTML = "";
+  if (!links.length) { block.style.display = "none"; return; }
+  // Dedupe by target (case-insensitive)
+  const seen = new Set();
+  links.forEach(({ target, alias }) => {
+    const key = target.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const targetCard = findCardByCompany(target);
+    // Don't self-link (if a card's notes reference its own company)
+    if (targetCard && targetCard.id === editingCardId) return;
+    const chip = document.createElement(targetCard ? "a" : "span");
+    chip.className = "link-chip" + (targetCard ? "" : " unresolved");
+    chip.textContent = alias || target;
+    if (targetCard) {
+      chip.href = "#";
+      const col = findColumnForCard(targetCard.id);
+      chip.title = `${targetCard.company} — ${targetCard.role}${col ? " · " + col.title : ""}`;
+      const arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.textContent = "↗";
+      chip.appendChild(arrow);
+      chip.addEventListener("click", (e) => {
+        e.preventDefault();
+        openJobModal(targetCard.id);
+      });
+    } else {
+      chip.title = `No job matches "${target}" yet`;
+    }
+    wrap.appendChild(chip);
+  });
+  block.style.display = wrap.children.length ? "" : "none";
+}
+
+function renderBacklinks(card) {
+  const block = document.getElementById("backlinks-block");
+  const wrap = document.getElementById("backlinks");
+  wrap.innerHTML = "";
+  if (!card || !card.company) { block.style.display = "none"; return; }
+  const myName = card.company.trim().toLowerCase();
+  const referrers = [];
+  Object.values(state.cards).forEach(other => {
+    if (other.id === card.id) return;
+    const links = parseWikilinks(other.notes || "");
+    if (links.some(l => l.target.toLowerCase() === myName)) referrers.push(other);
+  });
+  if (!referrers.length) { block.style.display = "none"; return; }
+  referrers.forEach(other => {
+    const chip = document.createElement("a");
+    chip.className = "link-chip";
+    chip.href = "#";
+    chip.textContent = other.company;
+    const col = findColumnForCard(other.id);
+    chip.title = `${other.company} — ${other.role}${col ? " · " + col.title : ""}`;
+    const arrow = document.createElement("span");
+    arrow.className = "arrow";
+    arrow.textContent = "↗";
+    chip.appendChild(arrow);
+    chip.addEventListener("click", (e) => {
+      e.preventDefault();
+      openJobModal(other.id);
+    });
+    wrap.appendChild(chip);
+  });
+  block.style.display = "";
+}
+
+// Re-render linked chips live as the user types in the notes field
+document.getElementById("f-notes").addEventListener("input", () => {
+  renderLinkChips();
+});
 
 function updateIcsButtonState() {
   const btn = document.getElementById("btn-download-ics");
@@ -1460,7 +1614,16 @@ function parseMarkdownTable(md) {
     }
   }
   if (headerIdx === -1) return [];
-  const splitRow = (s) => s.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+  // Split a markdown table row on `|`, but treat `\|` as a literal pipe inside
+  // a cell (needed for wiki-style links like [[Foo|alias]]).
+  const splitRow = (s) => {
+    const PIPE_PLACEHOLDER = "\u0000PIPE\u0000";
+    const stripped = s.trim().replace(/^\|/, "").replace(/\|$/, "");
+    return stripped
+      .replace(/\\\|/g, PIPE_PLACEHOLDER)
+      .split("|")
+      .map(c => c.replace(new RegExp(PIPE_PLACEHOLDER, "g"), "|").trim());
+  };
   const headers = splitRow(lines[headerIdx]).map(h => h.toLowerCase());
   const dataRows = [];
   for (let i = headerIdx + 2; i < lines.length; i++) {

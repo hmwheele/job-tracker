@@ -17,6 +17,7 @@ Your data lives on your machine. You can optionally sync it to a local `jobs.jso
 - **Scheduled call/interview** — date and time slot for whatever's coming up next. Click the **.ics** button next to the field to download a calendar invite you can import into Apple Calendar, Google Calendar, or Outlook.
 - **Schedule history per card** — each time you move a card to a new stage (or overwrite the scheduled time within a stage), the previous scheduled time is recorded in the card's history, grouped by the stage it belonged to. You can see a full timeline of past calls in the job modal.
 - **Stage history tracking** — every stage transition records entry/exit timestamps. Powers the average-duration-per-stage stats.
+- **Cross-reference jobs with `[[wikilinks]]`** — write `[[Company Name]]` in any card's notes and the tracker renders a clickable chip that jumps to that card. Backlinks appear automatically on the destination card. Same syntax works as a wikilink in Obsidian.
 - **Stats bar** at the bottom of the board showing pipeline counts (active / offer / closed / total) and total days of search since your earliest application.
 - Automatic company logos fetched from the company's domain (with a colored initials fallback)
 - Three ways to persist your data:
@@ -90,6 +91,27 @@ The table must have a header row, a separator row, and one row per job. The impo
 - **Notes**
 
 Click **Import** in the tracker and pick the `.md` file. The importer merges into your existing board — it skips rows whose company+role already exists, so re-importing after edits is safe. The beauty of this is now you can do whatever you want with the `.md` file — visualize it, generate a story, up to you how creative you want to be.
+
+## Linking jobs to each other
+
+You can reference another job from inside any card's Notes using wiki-style links:
+
+```
+Recruiter pitched [[Wayne Enterprises]] as a similar role.
+Leveraging the [[Wayne Enterprises|Wayne]] timeline to set a deadline.
+```
+
+- `[[Company Name]]` — resolves to the card whose **Company** field matches, case-insensitive.
+- `[[Company Name|alias]]` — same, but renders with custom link text. Inside a markdown table cell, escape the pipe as `\|` so the table still parses.
+- Unresolved links (no matching company yet) render as a dimmed chip so you know it's a placeholder.
+- The destination card's modal automatically shows a **Referenced by** list of every card linking to it — two-way traversal without any extra bookkeeping.
+
+Because the syntax is plain `[[...]]`, the same file is a valid Obsidian vault — open `companies.md` in Obsidian and your links are real wikilinks there too.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="screenshot-modal-dark.png">
+  <img src="screenshot-modal-light.png" alt="Job modal showing Linked jobs and Referenced by chips">
+</picture>
 
 ## Data format
 
