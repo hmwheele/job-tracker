@@ -486,6 +486,39 @@
     white-space: nowrap;
   }
 
+  /* Reference-picker dropdown, sits above Linked jobs */
+  .ref-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .ref-picker-row .ref-picker-label {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .ref-picker {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-elev-2);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 6px 28px 6px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%),
+                      linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .ref-picker:hover { border-color: var(--accent); }
+  .ref-picker:focus { outline: none; border-color: var(--accent); }
+  .ref-picker:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* Linked-jobs / backlinks chips in the modal */
   .link-chips {
     display: flex;
@@ -664,8 +697,14 @@
       </div>
       <button type="button" id="btn-download-ics" class="ics-btn-full" title="Download a calendar invite (.ics) for the scheduled time" disabled>Download calendar invite (.ics)</button>
       <label>Notes
-        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Reference other jobs with [[Company Name]]."></textarea>
+        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Reference other jobs with [[Company Name]] or use the picker below."></textarea>
       </label>
+      <div class="ref-picker-row" id="ref-picker-row" style="display:none">
+        <span class="ref-picker-label">Reference another job</span>
+        <select class="ref-picker" id="ref-picker">
+          <option value="">+ Insert reference…</option>
+        </select>
+      </div>
       <div id="linked-jobs-block" style="display:none">
         <div class="stats-label" style="margin-bottom:6px">Linked jobs</div>
         <div class="link-chips" id="linked-jobs"></div>
@@ -1241,11 +1280,74 @@ function openJobModal(cardId, targetColId) {
 
   updateIcsButtonState();
   renderScheduleHistory(card);
+  populateRefPicker();
   renderLinkChips();
   renderBacklinks(card);
 
   jobModal.classList.add("open");
   setTimeout(() => document.getElementById("f-company").focus(), 40);
+}
+
+/* ---------- Reference picker ---------- */
+// Fills the dropdown with every other card so the user can insert a
+// [[Company Name]] reference without having to remember the exact spelling.
+function populateRefPicker() {
+  const picker = document.getElementById("ref-picker");
+  const row = document.getElementById("ref-picker-row");
+  const editingCompany = document.getElementById("f-company").value.trim().toLowerCase();
+  // Build a sorted list of {company, role} for every other card.
+  const others = Object.values(state.cards)
+    .filter(c => {
+      if (editingCardId && c.id === editingCardId) return false;
+      // Also filter out a card whose company matches the one being edited
+      // (covers the "new card" case before it has an id).
+      if (editingCompany && (c.company || "").trim().toLowerCase() === editingCompany) return false;
+      return !!c.company;
+    })
+    .sort((a, b) => (a.company || "").localeCompare(b.company || ""));
+
+  picker.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = others.length
+    ? "+ Insert reference…"
+    : "No other jobs to reference yet";
+  picker.appendChild(placeholder);
+  others.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.company;
+    opt.textContent = c.role ? `${c.company} — ${c.role}` : c.company;
+    picker.appendChild(opt);
+  });
+  picker.disabled = others.length === 0;
+  // Always show the row so the affordance is discoverable, even if disabled.
+  row.style.display = "";
+}
+
+document.getElementById("ref-picker").addEventListener("change", (e) => {
+  const company = e.target.value;
+  if (!company) return;
+  insertWikilinkAtCursor(company);
+  // Reset to placeholder so the same item can be inserted twice in a row.
+  e.target.selectedIndex = 0;
+});
+
+function insertWikilinkAtCursor(company) {
+  const ta = document.getElementById("f-notes");
+  const link = `[[${company}]]`;
+  const before = ta.value.slice(0, ta.selectionStart);
+  const after = ta.value.slice(ta.selectionEnd);
+  // Insert with sensible whitespace: a leading space if the previous char
+  // isn't whitespace or the start of a string, and a trailing space if the
+  // next char isn't whitespace or punctuation/end.
+  const needsLead = before.length > 0 && !/\s$/.test(before);
+  const needsTrail = after.length > 0 && !/^[\s.,;:!?)\]]/.test(after);
+  const insertion = (needsLead ? " " : "") + link + (needsTrail ? " " : "");
+  ta.value = before + insertion + after;
+  const cursor = before.length + insertion.length;
+  ta.focus();
+  ta.setSelectionRange(cursor, cursor);
+  renderLinkChips();
 }
 
 /* ---------- [[Wiki-style]] links between jobs ---------- */
