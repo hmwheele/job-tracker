@@ -697,12 +697,12 @@
       </div>
       <button type="button" id="btn-download-ics" class="ics-btn-full" title="Download a calendar invite (.ics) for the scheduled time" disabled>Download calendar invite (.ics)</button>
       <label>Notes
-        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Reference other jobs with [[Company Name]] or use the picker below."></textarea>
+        <textarea id="f-notes" placeholder="Recruiter name, interview feedback, prep notes… Type [[ to reference another job."></textarea>
       </label>
       <div class="ref-picker-row" id="ref-picker-row" style="display:none">
-        <span class="ref-picker-label">Reference another job</span>
+        <span class="ref-picker-label">Pick a job to insert</span>
         <select class="ref-picker" id="ref-picker">
-          <option value="">+ Insert reference…</option>
+          <option value="">Choose…</option>
         </select>
       </div>
       <div id="linked-jobs-block" style="display:none">
@@ -1280,7 +1280,7 @@ function openJobModal(cardId, targetColId) {
 
   updateIcsButtonState();
   renderScheduleHistory(card);
-  populateRefPicker();
+  updateRefPicker();
   renderLinkChips();
   renderBacklinks(card);
 
@@ -1288,21 +1288,40 @@ function openJobModal(cardId, targetColId) {
   setTimeout(() => document.getElementById("f-company").focus(), 40);
 }
 
-/* ---------- Reference picker ---------- */
-// Fills the dropdown with every other card so the user can insert a
-// [[Company Name]] reference without having to remember the exact spelling.
-function populateRefPicker() {
-  const picker = document.getElementById("ref-picker");
+/* ---------- Reference picker (only shows while you're inside [[…) ---------- */
+// Returns { open: number, partial: string } if the cursor is inside an
+// unclosed [[ — i.e., the most recent [[ before the cursor has no matching
+// ]] before the cursor — or null otherwise.
+function activeWikilinkContext() {
+  const ta = document.getElementById("f-notes");
+  if (!ta) return null;
+  const cursor = ta.selectionStart;
+  const before = ta.value.slice(0, cursor);
+  const lastOpen = before.lastIndexOf("[[");
+  if (lastOpen === -1) return null;
+  const lastClose = before.lastIndexOf("]]");
+  if (lastClose !== -1 && lastClose > lastOpen) return null;
+  return { open: lastOpen, partial: before.slice(lastOpen + 2) };
+}
+
+// Show / hide / re-filter the picker based on the cursor context.
+function updateRefPicker() {
   const row = document.getElementById("ref-picker-row");
+  const ctx = activeWikilinkContext();
+  if (!ctx) { row.style.display = "none"; return; }
+
+  const picker = document.getElementById("ref-picker");
   const editingCompany = document.getElementById("f-company").value.trim().toLowerCase();
-  // Build a sorted list of {company, role} for every other card.
+  const needle = ctx.partial.trim().toLowerCase();
+
   const others = Object.values(state.cards)
     .filter(c => {
       if (editingCardId && c.id === editingCardId) return false;
-      // Also filter out a card whose company matches the one being edited
-      // (covers the "new card" case before it has an id).
       if (editingCompany && (c.company || "").trim().toLowerCase() === editingCompany) return false;
-      return !!c.company;
+      if (!c.company) return false;
+      // If the user has typed something after [[, narrow the list.
+      if (needle && !c.company.toLowerCase().includes(needle)) return false;
+      return true;
     })
     .sort((a, b) => (a.company || "").localeCompare(b.company || ""));
 
@@ -1310,8 +1329,8 @@ function populateRefPicker() {
   const placeholder = document.createElement("option");
   placeholder.value = "";
   placeholder.textContent = others.length
-    ? "+ Insert reference…"
-    : "No other jobs to reference yet";
+    ? (needle ? `Match for "${ctx.partial}"…` : "Choose…")
+    : (needle ? `No matches for "${ctx.partial}"` : "No other jobs to reference yet");
   picker.appendChild(placeholder);
   others.forEach(c => {
     const opt = document.createElement("option");
@@ -1320,35 +1339,47 @@ function populateRefPicker() {
     picker.appendChild(opt);
   });
   picker.disabled = others.length === 0;
-  // Always show the row so the affordance is discoverable, even if disabled.
   row.style.display = "";
 }
 
 document.getElementById("ref-picker").addEventListener("change", (e) => {
   const company = e.target.value;
   if (!company) return;
-  insertWikilinkAtCursor(company);
-  // Reset to placeholder so the same item can be inserted twice in a row.
+  completeWikilinkAtCursor(company);
   e.target.selectedIndex = 0;
 });
 
-function insertWikilinkAtCursor(company) {
+// Replace the in-progress [[partial with a complete [[Company Name]] and
+// place the cursor right after the closing ]]. Falls back to a plain
+// insert if (somehow) there's no [[ before the cursor.
+function completeWikilinkAtCursor(company) {
   const ta = document.getElementById("f-notes");
+  const ctx = activeWikilinkContext();
   const link = `[[${company}]]`;
-  const before = ta.value.slice(0, ta.selectionStart);
-  const after = ta.value.slice(ta.selectionEnd);
-  // Insert with sensible whitespace: a leading space if the previous char
-  // isn't whitespace or the start of a string, and a trailing space if the
-  // next char isn't whitespace or punctuation/end.
-  const needsLead = before.length > 0 && !/\s$/.test(before);
-  const needsTrail = after.length > 0 && !/^[\s.,;:!?)\]]/.test(after);
-  const insertion = (needsLead ? " " : "") + link + (needsTrail ? " " : "");
-  ta.value = before + insertion + after;
-  const cursor = before.length + insertion.length;
+  if (!ctx) {
+    // Shouldn't happen — picker is only shown when we're inside [[ — but
+    // be defensive just in case.
+    const cursor = ta.selectionStart;
+    ta.value = ta.value.slice(0, cursor) + link + ta.value.slice(cursor);
+    ta.setSelectionRange(cursor + link.length, cursor + link.length);
+  } else {
+    const after = ta.value.slice(ta.selectionEnd);
+    const newValue = ta.value.slice(0, ctx.open) + link + after;
+    const newCursor = ctx.open + link.length;
+    ta.value = newValue;
+    ta.setSelectionRange(newCursor, newCursor);
+  }
   ta.focus();
-  ta.setSelectionRange(cursor, cursor);
+  document.getElementById("ref-picker-row").style.display = "none";
   renderLinkChips();
 }
+
+// Wire the picker's visibility to anything that can move the cursor or
+// change the textarea contents.
+const _notesEl = document.getElementById("f-notes");
+["input", "keyup", "click", "focus", "select"].forEach(ev => {
+  _notesEl.addEventListener(ev, updateRefPicker);
+});
 
 /* ---------- [[Wiki-style]] links between jobs ---------- */
 // Matches [[Target]] and [[Target|Alias]]. Target and alias are trimmed

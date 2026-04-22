@@ -105,7 +105,7 @@ Leveraging the [[Wayne Enterprises|Wayne]] timeline to set a deadline.
 - `[[Company Name|alias]]` — same, but renders with custom link text. Inside a markdown table cell, escape the pipe as `\|` so the table still parses.
 - Unresolved links (no matching company yet) render as a dimmed chip so you know it's a placeholder.
 - The destination card's modal automatically shows a **Referenced by** list of every card linking to it — two-way traversal without any extra bookkeeping.
-- **Don't want to type the link by hand?** The card modal has a **Reference another job** dropdown right under the Notes field. Pick any other card and the matching `[[wikilink]]` is inserted at your cursor position with smart whitespace.
+- **Don't want to remember exact company names?** Type `[[` in the Notes field and a picker appears below it with every other job in your board. Keep typing to filter (`[[Way` narrows to "Wayne Enterprises"), then pick from the dropdown — the in-progress `[[partial` is replaced with a complete `[[Company Name]]` and the picker disappears until your next `[[`.
 
 Because the syntax is plain `[[...]]`, the same file is a valid Obsidian vault — open `companies.md` in Obsidian and your links are real wikilinks there too.
 
