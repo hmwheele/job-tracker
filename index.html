@@ -252,27 +252,35 @@
     align-items: flex-start;
   }
   .card-logo {
+    position: relative;
     flex: 0 0 32px;
     width: 32px;
     height: 32px;
     border-radius: 6px;
     background: var(--bg-elev);
     border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 13px;
     font-weight: 600;
     color: #fff;
     overflow: hidden;
     user-select: none;
   }
+  .card-logo-initials {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .card-logo img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
     background: #fff;
+    transition: opacity 120ms ease;
   }
   .card-body { flex: 1; min-width: 0; }
   .card-title {
@@ -937,21 +945,33 @@ function renderLogo(card) {
   const domain = getLogoDomain(card);
   const initials = companyInitials(card.company);
   wrap.style.background = companyColor(card.company || "");
-  wrap.textContent = initials;
+  // Render initials as a fallback layer that sits behind the img.
+  const label = document.createElement("span");
+  label.className = "card-logo-initials";
+  label.textContent = initials;
+  wrap.appendChild(label);
   if (domain) {
+    // Append the img immediately so the browser actually starts fetching.
+    // (A detached img with loading=lazy never enters any viewport and so
+    // never loads — which is why logos weren't appearing at all.)
     const img = document.createElement("img");
     img.alt = "";
-    img.loading = "lazy";
+    img.decoding = "async";
     img.referrerPolicy = "no-referrer";
-    img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+    img.style.opacity = "0";
     img.addEventListener("load", () => {
-      // Only swap in the image once it loads; keep initials as fallback if it errors
-      wrap.textContent = "";
-      wrap.appendChild(img);
+      // Google returns a tiny default globe for unknown domains; treat
+      // anything smaller than 16px as "no real favicon" and keep initials.
+      if (img.naturalWidth >= 16) {
+        img.style.opacity = "1";
+        label.style.display = "none";
+      }
     });
     img.addEventListener("error", () => {
-      // Keep initials fallback (already rendered)
+      img.remove();
     });
+    img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+    wrap.appendChild(img);
   }
   return wrap;
 }
